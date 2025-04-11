@@ -1,28 +1,32 @@
 import streamlit as st
-from flatlib.chart import Chart
-from flatlib.datetime import Datetime
-from flatlib.geopos import GeoPos
-from flatlib import const
+from datetime import datetime
+from astral.sun import sun
+from astral import LocationInfo
 
-st.title("🪐 Lagna Chart Generator")
+st.title("🌞 Lagna Time Insight (Simplified)")
 
-name = st.text_input("Your Name")
+city = st.text_input("City (Example: Delhi, Mumbai, Pune)")
+region = st.text_input("Region (Example: India)")
+timezone = st.text_input("Timezone (Example: Asia/Kolkata)", value="Asia/Kolkata")
 date = st.date_input("Date of Birth")
 time = st.time_input("Time of Birth")
-place = st.text_input("Place of Birth (optional - enter lat/long below)")
-latitude = st.number_input("Latitude", value=28.6139)
-longitude = st.number_input("Longitude", value=77.2090)
 
-if st.button("Generate Lagna Chart"):
-    dt = Datetime(str(date), str(time), '+05:30')  # assuming IST
-    pos = GeoPos(latitude, longitude)
-    chart = Chart(dt, pos)
+if st.button("Show Sun Position Details"):
+    try:
+        location = LocationInfo(city, region, timezone)
+        dt = datetime.combine(date, time)
 
-    st.subheader("🔮 Planetary Positions:")
-    for obj in [const.SUN, const.MOON, const.MERCURY, const.VENUS, const.MARS,
-                const.JUPITER, const.SATURN, const.RAHU, const.KETU, const.ASC]:
-        body = chart.get(obj)
-        st.write(f"{obj}: {body.sign} {body.lon}°")
+        s = sun(location.observer, date=date)
 
-    asc = chart.get(const.ASC)
-    st.success(f"🌟 Your Ascendant (Lagna) is: {asc.sign}")
+        st.write(f"🌄 **Sunrise:** {s['sunrise'].time()}")
+        st.write(f"🌇 **Sunset:** {s['sunset'].time()}")
+        st.write(f"🌞 **Solar Noon (Lagna midpoint):** {s['noon'].time()}")
+
+        if time < s['sunrise'].time():
+            st.success("The sun was below the horizon — possibly before sunrise.")
+        elif time > s['sunset'].time():
+            st.success("The sun was setting or had set — possibly evening Lagna.")
+        else:
+            st.success("Sun was above horizon — active daytime, strong visible Lagna.")
+    except Exception as e:
+        st.error(f"Could not calculate: {str(e)}")
