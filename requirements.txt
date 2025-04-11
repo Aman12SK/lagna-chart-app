@@ -1,3 +1,2 @@
 streamlit
-flatlib
-swisseph
+astral
